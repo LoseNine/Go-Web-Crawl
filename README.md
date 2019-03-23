@@ -10,3 +10,5 @@ IDE：JetBrains GoLand
 ### 一：http.Get 爬虫
 
 * QQ音乐 http://y.qq.com/
+
+* JD https://www.jd.com/
