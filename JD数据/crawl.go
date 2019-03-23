@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -16,18 +17,15 @@ func checkerr(err error) {
 	}
 }
 
-func regexp_data(html string) {
-	file, err := os.Create("result.txt")
-	checkerr(err)
-	var data = make([]string, 2)
+func regexp_data(html string, file *os.File) {
+	var data = make([][]string, 2)
 	name := regexp.MustCompile(`<em><font class="skcolor_ljg">(.*?)</em>`)
-	data = name.FindAllString(html, -1)
-	for _, i := range data {
-		file.WriteString(i + "\n")
-	}
+	data = name.FindAllStringSubmatch(html, -1)
+	r2 := csv.NewWriter(file)
+	r2.WriteAll(data)
 }
 
-func get_data(client http.Client, key string, n int, stops chan int) {
+func get_data(client http.Client, key string, n int, stops chan int, file *os.File) {
 	url := "https://search.jd.com/Search?keyword=keywords&enc=utf-8&qrst=1&rt=1&stop=1&vt=2&wq=python&page=pages"
 	url = strings.Replace(url, "keywords", key, -1)
 	url = strings.Replace(url, "pages", strconv.Itoa(n), -1)
@@ -42,16 +40,19 @@ func get_data(client http.Client, key string, n int, stops chan int) {
 	checkerr(err)
 	html := string(body)
 	fmt.Println(html)
-	regexp_data(html)
+	regexp_data(html, file)
 	stops <- 1
 }
 
 func crawl(key string, page int) {
 	n := 1
 	stops := make(chan int)
+	file, err := os.Create("result.csv")
+	defer file.Close()
+	checkerr(err)
 	client := http.Client{}
 	for i := 0; i < page; i += 1 {
-		go get_data(client, key, n, stops)
+		go get_data(client, key, n, stops, file)
 		n += 2
 	}
 	for i := 0; i < page; i++ {
